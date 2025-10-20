@@ -99,7 +99,6 @@ if (!imgResp.ok) {
 }
 
 const previewUrl = imgData.output?.[0]?.content?.[0]?.image_url || null;
-const previewUrl = imgData?.data?.[0]?.url || null;
 
       const patternSchema = {
         styleId,
