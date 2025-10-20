@@ -1,66 +1,111 @@
 // api/render-garment.js
-// Uses OpenAI Images API to render a garment preview
+// Uses OpenAI Vision + Image generation for garment preview + description
+
+export const config = {
+  api: { bodyParser: false }, // required for FormData uploads
+};
+
+import { IncomingForm } from "formidable";
+import fs from "fs";
 
 export default async function handler(req, res) {
-  try {
-    const body = req.method === "POST" ? req.body : {};
-    const {
-      gender,
-      skin,
-      hairColor,
-      hairStyle,
-      material,
-      color,
-      measurements,
-      styleId,
-      reference,
-    } = body || {};
+  if (req.method !== "POST")
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
 
-    // Create prompt for the image model
-    const prompt = `
-      full-body front view fashion illustration of a ${gender} mannequin 
-      with ${skin} skin tone, ${hairStyle} ${hairColor} hair,
-      wearing a ${material} garment in ${color},
-      based on a ${styleId || "reference"} style,
-      on plain dark background, soft lighting, smooth digital illustration.
-    `;
+  const form = new IncomingForm({ keepExtensions: true });
+  form.parse(req, async (err, fields, files) => {
+    try {
+      if (err) throw err;
+      const openaiKey = process.env.OPENAI_API_KEY;
+      if (!openaiKey) throw new Error("Missing OPENAI_API_KEY");
 
-    // Call OpenAI Images API
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "dall-e-3",
-        prompt,
-        size: "1024x1024",
-      }),
-    });
+      // read fields
+      const gender = fields.gender?.[0] || "female";
+      const skin = fields.skin?.[0] || "medium";
+      const hairColor = fields.hairColor?.[0] || "brown";
+      const hairStyle = fields.hairStyle?.[0] || "medium";
+      const material = fields.material?.[0] || "cotton";
+      const color = fields.color?.[0] || "#888888";
+      const styleId = fields.styleId?.[0] || "reference-garment";
+      const descriptionInput = fields.description?.[0] || "";
 
-    const data = await response.json();
+      // uploaded reference
+      const file = files.reference?.[0];
+      const filePath = file ? file.filepath : null;
 
-    const previewUrl = data?.data?.[0]?.url || null;
+      // 1. get a quick description if none supplied
+      let description = descriptionInput;
+      if (!description && filePath) {
+        const imgBase64 = fs.readFileSync(filePath, { encoding: "base64" });
+        const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${openaiKey}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text:
+                      "Describe the garment in this image for a sewing and fashion context (color, neckline, sleeves, length, drape, fabric).",
+                  },
+                  {
+                    type: "image_url",
+                    image_url: `data:image/jpeg;base64,${imgBase64}`,
+                  },
+                ],
+              },
+            ],
+          }),
+        });
+        const descData = await resp.json();
+        description =
+          descData?.choices?.[0]?.message?.content ||
+          "Garment description unavailable.";
+      }
 
-    // Simple pattern schema
-    const patternSchema = {
-      styleId: styleId || "reference-garment",
-      material: material || "cotton",
-      color: color || "#888888",
-      options: {
-        neckline: "v",
-        hasDrape: true,
-        skirt: "long",
-        ease: { bust: gender === "female" ? 4 : 6, waist: 3, hips: 4 },
-      },
-    };
+      // 2. render new image based on description
+      const prompt = `Full-body ${gender} mannequin with ${skin} skin, ${hairStyle} ${hairColor} hair, wearing ${material} garment in ${color}. ${description}. Studio lighting, dark background, soft digital illustration.`;
+      const imgResp = await fetch(
+        "https://api.openai.com/v1/images/generations",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${openaiKey}`,
+          },
+          body: JSON.stringify({
+            model: "dall-e-3",
+            prompt,
+            size: "1024x1024",
+          }),
+        }
+      );
+      const imgData = await imgResp.json();
+      const previewUrl = imgData?.data?.[0]?.url || null;
 
-    if (!previewUrl) throw new Error("Image generation failed");
+      const patternSchema = {
+        styleId,
+        material,
+        color,
+        options: {
+          neckline: "auto",
+          hasDrape: true,
+          ease: { bust: gender === "female" ? 4 : 6, waist: 3, hips: 4 },
+        },
+      };
 
-    res.status(200).json({ ok: true, previewUrl, patternSchema });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ ok: false, error: e?.message || "Render failed" });
-  }
+      res.status(200).json({ ok: true, previewUrl, patternSchema, description });
+    } catch (e) {
+      console.error(e);
+      res
+        .status(500)
+        .json({ ok: false, error: e?.message || "Render/description failed" });
+    }
+  });
 }
