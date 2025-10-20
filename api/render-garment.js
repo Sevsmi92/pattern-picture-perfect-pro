@@ -80,12 +80,18 @@ export default async function handler(req, res) {
   body: JSON.stringify({
     model: "gpt-image-1",
     prompt,
-    size: "1024x1024",
-    response_format: "url"
+    size: "1024x1024"
   }),
 });
-      const imgData = await imgResp.json();
-      const previewUrl = imgData?.data?.[0]?.url || null;
+
+const imgData = await imgResp.json();
+console.log("Image API response:", imgData);
+
+if (!imgResp.ok) {
+  throw new Error(imgData?.error?.message || "Image generation failed");
+}
+
+const previewUrl = imgData?.data?.[0]?.url || null;
 
       const patternSchema = {
         styleId,
