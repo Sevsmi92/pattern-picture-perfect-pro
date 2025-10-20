@@ -86,7 +86,15 @@ export default function Studio(){
 
           <h3 style={{marginTop:'.6rem'}}>Reference garment</h3>
           <div className="row">
-            <div><button onClick={onPick}>Upload reference photo</button><input ref={fileRef} onChange={onFile} type="file" accept="image/*" hidden /></div>
+            <div>
+  <button onClick={onPick}>Upload reference photo</button>
+  <input ref={fileRef} onChange={onFile} type="file" accept="image/*" hidden />
+  {refUrl && (
+    <div style={{ marginTop: '0.5rem' }}>
+      <img src={refUrl} alt="Reference preview" style={{ width: '100%', maxHeight: '200px', borderRadius: '8px', objectFit: 'contain', border: '1px solid #333' }} />
+    </div>
+  )}
+</div>
             <div><label>Material</label><select value={material} onChange={e=>setMaterial(e.target.value)}>{materials.map(m=><option key={m} value={m}>{m}</option>)}</select></div>
           </div>
           <div className="row">
