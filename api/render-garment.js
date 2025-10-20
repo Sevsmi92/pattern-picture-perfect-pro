@@ -94,3 +94,23 @@ if (!imgResp.ok) throw new Error("Local render failed");
 // WebUI returns base64 images
 const base64 = imgData.images?.[0];
 const previewUrl = base64 ? `data:image/png;base64,${base64}` : null;
+      const patternSchema = {
+        styleId,
+        material,
+        color,
+        options: {
+          neckline: "auto",
+          hasDrape: true,
+          ease: { bust: gender === "female" ? 4 : 6, waist: 3, hips: 4 },
+        },
+      };
+
+      res.status(200).json({ ok: true, previewUrl, patternSchema, description });
+    } catch (e) {
+      console.error(e);
+      res
+        .status(500)
+        .json({ ok: false, error: e?.message || "Render/description failed" });
+    }
+  });
+}
