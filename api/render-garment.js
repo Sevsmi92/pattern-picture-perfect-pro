@@ -71,21 +71,19 @@ export default async function handler(req, res) {
 
       // 2. render new image based on description
       const prompt = `Full-body ${gender} mannequin with ${skin} skin, ${hairStyle} ${hairColor} hair, wearing ${material} garment in ${color}. ${description}. Studio lighting, dark background, soft digital illustration.`;
-      const imgResp = await fetch(
-        "https://api.openai.com/v1/images/generations",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${openaiKey}`,
-          },
-          body: JSON.stringify({
-            model: "dall-e-3",
-            prompt,
-            size: "1024x1024",
-          }),
-        }
-      );
+      const imgResp = await fetch("https://api.openai.com/v1/images/generations", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${openaiKey}`,
+  },
+  body: JSON.stringify({
+    model: "gpt-image-1",
+    prompt,
+    size: "1024x1024",
+    response_format: "url"
+  }),
+});
       const imgData = await imgResp.json();
       const previewUrl = imgData?.data?.[0]?.url || null;
 
