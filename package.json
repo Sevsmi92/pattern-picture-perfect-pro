@@ -1,0 +1,28 @@
+{
+  "name": "pattern-picture-perfect-pro",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@tanstack/react-query": "^5.56.2",
+    "react-router-dom": "^6.26.2",
+    "three": "^0.160.0",
+    "@react-three/fiber": "^8.16.1",
+    "@react-three/drei": "^9.97.0",
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/react": "^18.3.10",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "vite": "^5.4.0"
+  }
+}
