@@ -71,7 +71,8 @@ export default async function handler(req, res) {
 
       // 2. render new image based on description
       const prompt = `Full-body ${gender} mannequin with ${skin} skin, ${hairStyle} ${hairColor} hair, wearing ${material} garment in ${color}. ${description}. Studio lighting, dark background, soft digital illustration.`;
-      const imgResp = await fetch("https://api.openai.com/v1/images/generations", {
+      console.log("Calling OpenAI Images with prompt:", prompt);
+const imgResp = await fetch("https://api.openai.com/v1/images/generations", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
