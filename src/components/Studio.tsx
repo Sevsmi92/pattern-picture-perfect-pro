@@ -1,3 +1,5 @@
+const [refFile, setRefFile] = useState<File|undefined>()
+const [desc, setDesc] = useState<string>("")
 import React, { useRef, useState } from 'react'
 import { Measurements, StyleSchema } from '@/lib/types'
 
@@ -22,28 +24,39 @@ export default function Studio(){
   const fileRef = useRef<HTMLInputElement>(null)
   const onPick = ()=> fileRef.current?.click()
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0]) return
-    const f = e.target.files[0]
-    const url = URL.createObjectURL(f)
-    setRefUrl(url)
-  }
+  const f = e.target.files?.[0]
+  if (!f) return
+  setRefFile(f)
+  setRefUrl(URL.createObjectURL(f))
+}
 
   const onRender = async () => {
-    setBusy(true); setPreview(undefined)
-    try {
-      const body = {
-        gender, skin, hairColor, hairStyle,
-        material, color: fabricColor,
-        measurements: m,
-        styleId: 'reference-garment',
-        reference: refUrl || null
-      }
-      const r = await fetch('/api/render-garment', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)})
-      const j = await r.json()
-      if (j.previewUrl) setPreview(j.previewUrl)
-      if (j.patternSchema) setSchema(j.patternSchema)
-    } catch { alert('Render failed') } finally { setBusy(false) }
+  setBusy(true); setPreview(undefined)
+  try {
+    const fd = new FormData()
+    fd.append("gender", gender)
+    fd.append("skin", skin)
+    fd.append("hairColor", hairColor)
+    fd.append("hairStyle", hairStyle)
+    fd.append("material", material)
+    fd.append("color", fabricColor)
+    fd.append("styleId", "reference-garment")
+    fd.append("measurements", JSON.stringify(m))
+    if (refFile) fd.append("reference", refFile)
+    // optional: if user edited description, send it too
+    if (desc.trim()) fd.append("description", desc.trim())
+
+    const r = await fetch("/api/render-garment", { method:"POST", body: fd })
+    const j = await r.json()
+    if (j.previewUrl) setPreview(j.previewUrl)
+    if (j.patternSchema) setSchema(j.patternSchema)
+    if (j.description) setDesc(j.description) // show auto description
+  } catch {
+    alert("Render failed")
+  } finally {
+    setBusy(false)
   }
+}
 
   const onDownload = () => {
     if (!schema) { alert('Render first, then download pattern.'); return }
@@ -111,11 +124,32 @@ export default function Studio(){
         </div>
 
         <div className="card" style={{minHeight:'70vh'}}>
-          <h2>Preview</h2>
-          {preview ? <img className="thumb" src={preview} /> : <p className="small">Upload a reference and click Generate Preview.</p>}
-        </div>
-      </div>
-    </div>
-    <footer>© 2025 Pattern Picture Perfect</footer>
-  </div>)
+  <h2>Preview</h2>
+  {preview ? (
+    <img className="thumb" src={preview} />
+  ) : (
+    <p className="small">Upload a reference and click Generate Preview.</p>
+  )}
+
+  <h3 style={{ marginTop: '.8rem' }}>Description</h3>
+  <textarea
+    value={desc}
+    onChange={(e)=>setDesc(e.target.value)}
+    placeholder="Auto description will appear here. Edit and click Regenerate."
+    style={{
+      width:'100%',
+      minHeight:120,
+      borderRadius:8,
+      background:'#0f1018',
+      color:'#e7e7ea',
+      border:'1px solid #23243b',
+      padding:8
+    }}
+  />
+  <div className="buttons" style={{ marginTop: '.6rem' }}>
+    <button onClick={onRender} disabled={busy}>
+      {busy ? 'Regenerating…' : 'Regenerate from description'}
+    </button>
+  </div>
+</div>
 }
