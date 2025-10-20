@@ -92,8 +92,7 @@ const imgResp = await fetch("https://api.openai.com/v1/responses", {
 });
 
 const imgData = await imgResp.json();
-console.log("Image API response:", imgData);
-
+console.log("Raw output keys:", Object.keys(imgData));
 if (!imgResp.ok) {
   throw new Error(imgData?.error?.message || "Image generation failed");
 }
