@@ -70,52 +70,27 @@ export default async function handler(req, res) {
       }
 
       // 2. render new image based on description
-      // Generate image using gpt-4o-mini responses endpoint (works with most enterprise keys)
-const imgResp = await fetch("https://api.openai.com/v1/responses", {
+      // Send the prompt to your local Stable Diffusion WebUI running on 127.0.0.1:7860
+const prompt = `Full-body ${gender} mannequin with ${skin} skin, ${hairStyle} ${hairColor} hair, wearing ${material} garment in ${color}. ${description}. Studio lighting, dark background, soft digital illustration.`;
+
+// Local WebUI API
+const body = {
+  prompt,
+  negative_prompt: "blurry, distorted, cropped, low quality",
+  steps: 20,
+  width: 1024,
+  height: 1024
+};
+
+const imgResp = await fetch("http://127.0.0.1:7860/sdapi/v1/txt2img", {
   method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${openaiKey}`,
-  },
-  body: JSON.stringify({
-    model: "gpt-4o-mini",
-    input: [
-      {
-        role: "user",
-        content: [
-          { type: "input_text", text: prompt },
-          { type: "output_image", size: "1024x1024" }
-        ]
-      }
-    ]
-  }),
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body)
 });
 
 const imgData = await imgResp.json();
-console.log("Raw output keys:", Object.keys(imgData));
-if (!imgResp.ok) {
-  throw new Error(imgData?.error?.message || "Image generation failed");
-}
+if (!imgResp.ok) throw new Error("Local render failed");
 
-const previewUrl = imgData.output?.[0]?.content?.[0]?.image_url || null;
-
-      const patternSchema = {
-        styleId,
-        material,
-        color,
-        options: {
-          neckline: "auto",
-          hasDrape: true,
-          ease: { bust: gender === "female" ? 4 : 6, waist: 3, hips: 4 },
-        },
-      };
-
-      res.status(200).json({ ok: true, previewUrl, patternSchema, description });
-    } catch (e) {
-      console.error(e);
-      res
-        .status(500)
-        .json({ ok: false, error: e?.message || "Render/description failed" });
-    }
-  });
-}
+// WebUI returns base64 images
+const base64 = imgData.images?.[0];
+const previewUrl = base64 ? `data:image/png;base64,${base64}` : null;
