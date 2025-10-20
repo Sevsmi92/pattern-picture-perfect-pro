@@ -1,5 +1,3 @@
-const [refFile, setRefFile] = useState<File|undefined>()
-const [desc, setDesc] = useState<string>("")
 import React, { useRef, useState } from 'react'
 import { Measurements, StyleSchema } from '@/lib/types'
 
@@ -7,6 +5,8 @@ const skinTones = { veryfair:'#f8e0cf', light:'#edc9ae', medium:'#d2a483', tan:'
 const materials = ['cotton','linen','silk','wool','denim','satin','polyester','leather'] as const
 
 export default function Studio(){
+  const [refFile, setRefFile] = useState<File|undefined>()
+const [desc, setDesc] = useState<string>("")
   const [gender,setGender]=useState<'female'|'male'>('female')
   const [skin,setSkin]=useState<keyof typeof skinTones>('medium')
   const [hairColor,setHairColor]=useState('brown')
