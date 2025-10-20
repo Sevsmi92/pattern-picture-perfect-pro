@@ -70,18 +70,24 @@ export default async function handler(req, res) {
       }
 
       // 2. render new image based on description
-      const prompt = `Full-body ${gender} mannequin with ${skin} skin, ${hairStyle} ${hairColor} hair, wearing ${material} garment in ${color}. ${description}. Studio lighting, dark background, soft digital illustration.`;
-      console.log("Calling OpenAI Images with prompt:", prompt);
-const imgResp = await fetch("https://api.openai.com/v1/images/generations", {
+      // Generate image using gpt-4o-mini responses endpoint (works with most enterprise keys)
+const imgResp = await fetch("https://api.openai.com/v1/responses", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
     Authorization: `Bearer ${openaiKey}`,
   },
   body: JSON.stringify({
-    model: "gpt-image-1",
-    prompt,
-    size: "1024x1024"
+    model: "gpt-4o-mini",
+    input: [
+      {
+        role: "user",
+        content: [
+          { type: "input_text", text: prompt },
+          { type: "output_image", size: "1024x1024" }
+        ]
+      }
+    ]
   }),
 });
 
@@ -92,6 +98,7 @@ if (!imgResp.ok) {
   throw new Error(imgData?.error?.message || "Image generation failed");
 }
 
+const previewUrl = imgData.output?.[0]?.content?.[0]?.image_url || null;
 const previewUrl = imgData?.data?.[0]?.url || null;
 
       const patternSchema = {
